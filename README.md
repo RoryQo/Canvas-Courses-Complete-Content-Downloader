@@ -85,6 +85,39 @@ This is the correct path for most Windows installations. If you install `wkhtmlt
 5. Your content will be downloaded into a folder on your computer, with each course in its own subfolder.
 
 
+## Output
+
+### Folder Structure
+
+All downloaded files are saved to a local directory named canvas_all_content, with one subfolder per course. Original filenames and extensions are preserved.
+
+```
+canvas_all_content/
+├── Course Name A/
+│   ├── lecture1.pdf
+│   ├── page - Syllabus.html
+│   ├── assignment - Essay.html
+│   ├── module - Week 1 Overview.html
+│   └── submission - final_essay.pdf
+├── Course Name B/
+│   └── ...
+```
+
+### Notes
+
+- Some **assignment and module PDFs may appear mostly blank**. This is expected behavior:
+  - Modules in Canvas are often used to organize links to readings, files, and other resources, rather than contain standalone instructional content.
+  - Assignment pages may also be empty unless the instructor wrote detailed descriptions directly into Canvas.
+
+- These PDFs are still included in the download because they often contain **embedded or linked files** that are important—such as:
+  - Required readings
+  - Data files
+  - Code notebooks
+  - External tools or references
+
+- By processing all assignments and modules, the downloader ensures that **no embedded content is missed**, even if it’s hidden inside otherwise empty-looking pages.
+
+
 ## Security and Privacy
 
 - Your Canvas access token is used exclusively for authenticating with the Canvas API during your session.

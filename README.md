@@ -1,4 +1,4 @@
-# Download All Canvas Course Content
+# Download All Canvas Courses Content
 
 This notebook allows you to download everything from your Canvas account—including course files, assignments, pages, modules, submissions, and embedded or linked documents within assignments and modules.
 

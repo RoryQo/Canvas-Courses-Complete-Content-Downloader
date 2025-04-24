@@ -60,7 +60,16 @@ You can install them all at once with:
 ```python
 !pip install requests tqdm beautifulsoup4 html2text pdfkit
 ```
+**Mac Users**
 
+
+
+
+pdfkit auto installation in Jupyter Notebook may auto-install in the wrong environment. Use this command to ensure it is in the correct place for usage:
+
+```
+!/opt/miniconda3/envs/ba2/bin/python -m pip install pdfkit
+```
 
 ### 4. Install wkhtmltopdf
 
@@ -74,6 +83,23 @@ C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe
 
 This is the correct path for most Windows installations. If you install `wkhtmltopdf` in a different location or use a different operating system, you may need to update the path manually in the notebook.
 
+**Mac Users**
+
+- **1.** The automatic download path is different, update your file path in the script to:
+
+    ```python
+    pdfkit_config = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
+    ```
+
+- **2.** If macOS blocks `whpdftohtml` with a message like "`whpdftohtml` can't be opened because it is from an unidentified developer," here's how to bypass the warning and use it anyway:
+
+    - **Go to `System Settings > Privacy & Security`.**
+    - **Scroll to the bottom of the `Security` section.**  
+      There should be a message like:  
+      > `'whpdftohtml' was blocked from use because it is not from an identified developer.`
+    - **Click the "Open Anyway" button.**
+    - **In the confirmation dialog, click "Open".**  
+      macOS will now allow the file to run.
 
 
 ## How to Use

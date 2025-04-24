@@ -93,13 +93,13 @@ This is the correct path for most Windows installations. If you install `wkhtmlt
 
 - **2.** If macOS blocks `whpdftohtml` with a message like "`whpdftohtml` can't be opened because it is from an unidentified developer," here's how to bypass the warning and use it anyway:
 
-    - **Go to `System Settings > Privacy & Security`.**
-    - **Scroll to the bottom of the `Security` section.**  
+    - Go to `System Settings > Privacy & Security`
+    - Scroll to the bottom of the `Security` section 
       There should be a message like:  
       > `'whpdftohtml' was blocked from use because it is not from an identified developer.`
-    - **Click the "Open Anyway" button.**
-    - **In the confirmation dialog, click "Open".**  
-      macOS will now allow the file to run.
+    - Click the "Open Anyway" button
+    - In the confirmation dialog, click "Open" 
+      macOS will now allow the file to run
 
 
 ## How to Use

@@ -83,10 +83,11 @@ from canvas_downloader.downloader import (
     download_all_courses_windows)
 ```
 
-### download_specific_courses_mac(course_ids, token, output_dir)
+### download_specific_courses_mac(course_ids, token, output_dir, base_url)
 
 ```python
-download_specific_courses_mac(course_ids=[12345, 67890], token="YOUR_CANVAS_TOKEN", output_dir="./downloads")
+download_specific_courses_mac(course_ids=[12345, 67890], token="YOUR_CANVAS_TOKEN", output_dir="./downloads", base_url="https://yourinstitution.instructure.com/api/v1")
+
 ```
 
 **Purpose:**  
@@ -96,16 +97,18 @@ Download files and module content for specified courses (Mac users).
 - `course_ids` (list of int): List of Canvas course IDs to download.
 - `token` (str): Canvas API access token.
 - `output_dir` (str or Path): Directory to save downloaded content.
+- `base_url` (str): Base Canvas API URL for your institution.
 
 **Outputs:**
 - Downloads course files and module-linked files into structured folders.
 
 ---
 
-### download_all_courses_mac(token, output_dir)
+### download_all_courses_mac(token, output_dir, base_url)
 
 ```python
-download_all_courses_mac(token="YOUR_CANVAS_TOKEN", output_dir="./downloads")
+download_all_courses_mac(token="YOUR_CANVAS_TOKEN", output_dir="./downloads", base_url="https://yourinstitution.instructure.com/api/v1")
+
 ```
 
 
@@ -115,16 +118,17 @@ Download files and module content from all active courses (Mac users).
 **Inputs:**
 - `token` (str): Canvas API access token.
 - `output_dir` (str or Path): Directory to save downloaded content.
+- `base_url` (str): Base Canvas API URL for your institution.
 
 **Outputs:**
 - Downloads all course files and module-linked files into structured folders.
 
 ---
 
-### download_specific_courses_windows(course_ids, token, output_dir)
+### download_specific_courses_windows(course_ids, token, output_dir, base_url)
 
 ```python
-download_specific_courses_windows(course_ids=[12345, 67890], token="YOUR_CANVAS_TOKEN", output_dir="./downloads")
+download_specific_courses_windows(course_ids=[12345, 67890], token="YOUR_CANVAS_TOKEN", output_dir="./downloads", base_url="https://yourinstitution.instructure.com/api/v1")
 ```
 
 **Purpose:**  
@@ -134,16 +138,17 @@ Download files and module content for specified courses (Windows users).
 - `course_ids` (list of int): List of Canvas course IDs to download.
 - `token` (str): Canvas API access token.
 - `output_dir` (str or Path): Directory to save downloaded content.
+- `base_url` (str): Base Canvas API URL for your institution.
 
 **Outputs:**
 - Downloads course files and saves module pages as PDFs (using wkhtmltopdf).
 
 ---
 
-### download_all_courses_windows(token, output_dir)
+### download_all_courses_windows(token, output_dir, base_url)
 
 ```python
-download_all_courses_windows(token="YOUR_CANVAS_TOKEN", output_dir="./downloads")
+download_all_courses_windows(token="YOUR_CANVAS_TOKEN", output_dir="./downloads", base_url="https://yourinstitution.instructure.com/api/v1")
 ```
 
 **Purpose:**  
@@ -152,6 +157,8 @@ Download files and module content from all active courses (Windows users).
 **Inputs:**
 - `token` (str): Canvas API access token.
 - `output_dir` (str or Path): Directory to save downloaded content.
+- `base_url` (str): Base Canvas API URL for your institution.
+
 
 **Outputs:**
 - Downloads all course files and saves module pages as PDFs (using wkhtmltopdf).

@@ -166,5 +166,4 @@ canvas_downloader/
 │   └── test_downloader.py         # (Optional) Future test scripts
 ├── pyproject.toml                 # Build system config
 ├── README.md                      # Project documentation
-├── LICENSE                        # License file (MIT)
 └── .gitignore                     # Git ignore rules

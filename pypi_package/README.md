@@ -52,6 +52,22 @@ This token allows the package to authenticate with your Canvas account and downl
    - You will **not** be able to view it again later!
 6. **Save it securely** — you will pass this token into the downloader functions in your Python code.
 
+#### Finding Your Institution's Canvas Base URL
+
+Most universities and institutions use their **own Canvas domain**.  
+Instead of `canvas.instructure.com`, your school might use something like:
+
+| Example Institution | Example Base URL |
+|:--|:--|
+| University of Pittsburgh | `https://pitt.instructure.com/api/v1` |
+| Harvard University | `https://canvas.harvard.edu/api/v1` |
+| Penn State University | `https://psu.instructure.com/api/v1` |
+
+> **How to find it:**  
+> Log into Canvas → Check the URL in your browser → Copy the part before `/courses/`, and add `/api/v1`.
+
+> When calling functions, always provide your correct base URL for accurate API calls.
+
 ---
 
 ## Function Documentation

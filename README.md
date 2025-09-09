@@ -7,7 +7,7 @@ It works for all courses you have access to, including both current and past enr
 **Features Overview**
 
 - Downloads all enrolled courses (past and current)
-- Saves:
+- Saves: 
   - Uploaded course files
   - Assignment descriptions (as PDFs)
   - Pages and modules (as PDFs)

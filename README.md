@@ -60,6 +60,11 @@ You can install them all at once with:
 ```python
 !pip install requests tqdm beautifulsoup4 html2text pdfkit
 ```
+or
+
+```python
+pip install -r requirements.txt
+```
 **Mac Users**
 
 

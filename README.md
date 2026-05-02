@@ -1,8 +1,11 @@
 # Download All Canvas Courses Content  
- 
+
+
+**No programming experience needed.** Just follow the steps outlined in the README and only edit the clearly marked cells.
+
 This notebook allows you to download everything from your Canvas account—including course files, assignments, pages, modules, submissions, and embedded or linked documents within assignments and modules.
 
-It works for all courses you have access to, including both current and past enrollments. Everything is saved directly to your computer in clearly labeled folders—one for each course—for easy offline access.
+It works for all courses you have access to, including both current and past enrollments. Everything is saved directly to your computer in clearly labeled folders, one for each course, for easy offline access.
 
 **Features Overview**
 

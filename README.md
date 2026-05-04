@@ -20,7 +20,82 @@ It works for all courses you have access to, including both current and past enr
 
 ---
 
+## Recommended: Archive One Canvas Course From The Command Line
+
+The new CLI uses the Canvas REST API under `/api/v1` and creates a local
+navigation page for the archived course. You can pass either a full Canvas
+course URL or a domain plus course id.
+
+### 1. Install the Python packages
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Set your Canvas API token
+
+Do not paste your token into `canvas_archive.py`. Store it in an environment
+variable for the terminal session.
+
+macOS/Linux:
+
+```bash
+export CANVAS_API_TOKEN="your_token_here"
+```
+
+Windows PowerShell:
+
+```powershell
+$env:CANVAS_API_TOKEN="your_token_here"
+```
+
+Treat this token like a password. Revoke it from Canvas when you no longer
+need it.
+
+### 3. Run the archive
+
+```bash
+python canvas_archive.py --course-url "https://canvas.harvard.edu/courses/146553"
+```
+
+Equivalent form:
+
+```bash
+python canvas_archive.py \
+  --domain "https://canvas.harvard.edu" \
+  --course-id 146553
+```
+
+Useful options:
+
+```bash
+python canvas_archive.py \
+  --course-url "https://canvas.harvard.edu/courses/146553" \
+  --output-dir canvas_all_content \
+  --include-submissions \
+  --download-external false
+```
+
+Run a safe metadata check without downloading course content:
+
+```bash
+python canvas_archive.py --course-url "https://canvas.harvard.edu/courses/146553" --dry-run
+```
+
+The archive is written under `canvas_all_content/`. Open the generated
+`index.html` dashboard, then open the course `index.html` for module-based
+navigation, pages, assignments, files, syllabus, warnings, and external links.
+
+External protected resources such as streaming video, library proxy pages,
+Google Drive, Panopto, Kaltura, and YouTube are recorded as links but are not
+scraped or bypassed.
+
+---
+
 ## Setup Instructions
+
+The notebooks are still included for compatibility, but the command-line
+archive above is now the recommended path.
 
 ### 1. Generate a Canvas API Token 
 
@@ -49,25 +124,22 @@ CANVAS_DOMAIN = 'https://canvas.pitt.edu'
 
 ### 3. Install Required Packages
 
-To use this tool, install the following Python packages:
+To use the command-line archiver, install the following Python packages:
 
 - `requests` – for making API calls to Canvas
 - `tqdm` – for showing progress bars during downloads
 - `beautifulsoup4` – for parsing HTML from Canvas content
-- `html2text` – for converting HTML into plain text (used internally)
-- `pdfkit` – for converting Canvas pages and assignments to PDF
 
 
 You can install them all at once with:
 
-```python
-!pip install requests tqdm beautifulsoup4 html2text pdfkit
-```
-or
-
-```python
+```bash
 pip install -r requirements.txt
 ```
+
+The older notebooks may still require `pdfkit` and `wkhtmltopdf` if you want
+their PDF conversion workflow. The new `canvas_archive.py` output is HTML-first
+because it preserves local links better.
 **Mac Users**
 
 

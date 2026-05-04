@@ -1,6 +1,5 @@
 import os
 import requests
-import html2text
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 from pathlib import Path

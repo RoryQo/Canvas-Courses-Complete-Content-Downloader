@@ -733,13 +733,18 @@ class SinglePageArchiver:
         params = [("include[]", "syllabus_body")]
         try:
             course = self.client.get_json(f"/courses/{self.target.course_id}", params=params)
-        except CanvasAPIError as exc:
-            if exc.status_code != 400:
-                raise
-            course = self.client.get_json(f"/courses/{self.target.course_id}")
+        except (CanvasAPIError, CanvasPermissionError) as exc:
+            # 400 often means include[] is not supported; 403/404 means metadata is restricted
+            status_code = getattr(exc, "status_code", None)
+            if status_code == 400:
+                course = self.client.get_json(f"/courses/{self.target.course_id}")
+            else:
+                print(f"Warning: Could not fetch course metadata ({exc}). Using ID as fallback name.", file=sys.stderr)
+                return {"id": self.target.course_id, "name": f"Course {self.target.course_id}"}
+        
         self.log("course", self.client.api_url(f"/courses/{self.target.course_id}"), None, "fetched")
         if not isinstance(course, dict):
-            raise CanvasAPIError("Canvas returned unexpected course metadata.")
+            return {"id": self.target.course_id, "name": f"Course {self.target.course_id}"}
         return course
 
     def fetch_page(self) -> dict[str, Any]:
@@ -1004,25 +1009,39 @@ class SinglePageArchiver:
         page: dict[str, Any],
         classified: list[dict[str, Any]],
     ) -> None:
-        counts = {
-            "links": len(classified),
-            "canvas_files": sum(1 for item in classified if item["classification"].kind == "canvas_file"),
-            "external_or_protected": sum(
-                1
-                for item in classified
-                if item["classification"].kind in {"external", "external_protected"}
-            ),
-            "canvas_pages": sum(1 for item in classified if item["classification"].kind == "canvas_page"),
-            "canvas_assignments": sum(1 for item in classified if item["classification"].kind == "canvas_assignment"),
+        print(f"\n--- Dry Run (Single Page): {course.get('name', 'Course ' + self.target.course_id)} ---")
+        print(f"Target Page: {page.get('title') or self.target.page_slug}")
+        print(f"Canvas URL:  {self.target.original_url}")
+        
+        groups: dict[str, int] = {
+            "canvas_file": 0,
+            "canvas_page": 0,
+            "canvas_assignment": 0,
+            "canvas_discussion": 0,
+            "external/protected": 0,
+            "other": 0
         }
-        print("Dry run complete. No file bodies were downloaded.")
-        print(f"Course: {course.get('name') or course.get('course_code') or self.target.course_id}")
-        print(f"Page: {page.get('title') or self.target.page_slug}")
-        print(f"Links discovered: {counts['links']}")
-        print(f"Canvas files: {counts['canvas_files']}")
-        print(f"External/protected links: {counts['external_or_protected']}")
-        print(f"Canvas page links recorded only: {counts['canvas_pages']}")
-        print(f"Canvas assignment links recorded only: {counts['canvas_assignments']}")
+        
+        for item in classified:
+            kind = item["classification"].kind
+            if kind in groups:
+                groups[kind] += 1
+            elif kind in ("external", "external_protected"):
+                groups["external/protected"] += 1
+            else:
+                groups["other"] += 1
+
+        print("\nLinks discovered on this page:")
+        for label, count in groups.items():
+            if count > 0:
+                print(f"- {label.replace('_', ' ').title():18}: {count}")
+
+        if self.verbose:
+            print("\nDetailed Link List:")
+            for item in classified:
+                print(f"  [{item['classification'].kind}] {item['resource'].absolute_url}")
+
+        print("\nDry run complete. No files were downloaded or modified.")
 
 
 def rewrite_local_links(
@@ -1149,6 +1168,7 @@ class FullCourseArchiver:
         client: CanvasClient,
         target: CourseTarget,
         output_dir: Path,
+        page_target: CoursePageTarget | None = None,
         download_external: bool = False,
         include_submissions: bool = False,
         dry_run: bool = False,
@@ -1158,6 +1178,7 @@ class FullCourseArchiver:
     ) -> None:
         self.client = client
         self.target = target
+        self.page_target = page_target
         self.output_dir = output_dir
         self.download_external = download_external
         self.include_submissions = include_submissions
@@ -1226,6 +1247,15 @@ class FullCourseArchiver:
         self.save_course_metadata(course)
         self.archive_course_files()
         self.archive_syllabus(course)
+        
+        # Seed crawling: if a specific page was supplied, fetch it and its children
+        if self.page_target:
+            self.save_page_by_slug(self.page_target.page_slug, depth=self.crawl_depth)
+            
+        # Seed crawling: if the default view is wiki, try the front page
+        if course.get("default_view") == "wiki":
+            self.archive_front_page()
+
         self.archive_pages()
         self.archive_assignments()
         self.archive_discussions(announcements=False)
@@ -1246,56 +1276,124 @@ class FullCourseArchiver:
                 f"/courses/{self.target.course_id}",
                 params=[("include[]", "syllabus_body")],
             )
-        except CanvasAPIError as exc:
-            if exc.status_code != 400:
-                raise
-            self.warn("Canvas did not accept include[]=syllabus_body; fetched course metadata without it.")
-            course = self.client.get_json(f"/courses/{self.target.course_id}")
+        except (CanvasAPIError, CanvasPermissionError) as exc:
+            status_code = getattr(exc, "status_code", None)
+            if status_code == 400:
+                self.warn("Canvas did not accept include[]=syllabus_body; fetching metadata without it.")
+                course = self.client.get_json(f"/courses/{self.target.course_id}")
+            else:
+                self.warn(f"Could not fetch full course metadata ({exc}). Continuing with basic info.")
+                return {"id": self.target.course_id, "name": f"Course {self.target.course_id}"}
         if not isinstance(course, dict):
-            raise CanvasAPIError("Canvas returned unexpected course metadata.")
+            return {"id": self.target.course_id, "name": f"Course {self.target.course_id}"}
         return course
 
     def print_dry_run_summary(self, course: dict[str, Any]) -> None:
-        print(f"Dry run for {self.target.original_url}")
-        print(f"Course: {course.get('name') or course.get('course_code') or self.target.course_id}")
-        print(f"default_view: {course.get('default_view')}")
-        print(f"workflow_state: {course.get('workflow_state')}")
-        print(f"syllabus_body returned: {'yes' if (course.get('syllabus_body') or '').strip() else 'no'}")
+        print(f"\n--- Dry Run: {course.get('name', 'Course ' + self.target.course_id)} ---")
+        print(f"Canvas Domain: {self.target.domain}")
+        print(f"Default View:  {course.get('default_view')}")
+        print(f"Syllabus Body: {'Returned' if (course.get('syllabus_body') or '').strip() else 'Empty or not returned'}")
+        
+        # Check top-level endpoints
+        endpoints = [
+            ("Files", f"/courses/{self.target.course_id}/files"),
+            ("Pages", f"/courses/{self.target.course_id}/pages"),
+            ("Assignments", f"/courses/{self.target.course_id}/assignments"),
+            ("Modules", f"/courses/{self.target.course_id}/modules"),
+            ("Discussions", f"/courses/{self.target.course_id}/discussion_topics"),
+            ("Announcements", f"/courses/{self.target.course_id}/discussion_topics?only_announcements=true"),
+        ]
+        
+        collection_data = {}
+        print("\nChecking Top-Level Endpoints:")
+        for label, path in endpoints:
+            items, status = self.fetch_collection_status(path, label)
+            collection_data[label] = items
+            print(f"- {label:13}: {status}")
 
-        files = self.safe_paginated(f"/courses/{self.target.course_id}/files", {"per_page": 100}, "files")
-        pages = self.safe_paginated(f"/courses/{self.target.course_id}/pages", {"per_page": 100}, "pages")
-        assignments = self.safe_paginated(f"/courses/{self.target.course_id}/assignments", {"per_page": 100}, "assignments")
-        modules = self.safe_paginated(f"/courses/{self.target.course_id}/modules", {"per_page": 100}, "modules")
-        discussions = self.safe_paginated(
-            f"/courses/{self.target.course_id}/discussion_topics",
-            {"per_page": 100},
-            "discussions",
-        )
-        announcements = self.safe_paginated(
-            f"/courses/{self.target.course_id}/discussion_topics",
-            {"per_page": 100, "only_announcements": "true"},
-            "announcements",
-        )
-        module_items_count = 0
-        for module in modules:
-            module_id = module.get("id")
-            if not module_id:
-                continue
-            items = self.safe_paginated(
-                f"/courses/{self.target.course_id}/modules/{module_id}/items",
-                {"per_page": 100},
-                f"module {module_id} items",
-            )
-            module_items_count += len(items)
+        # If wiki view, check front page
+        front_page_body = ""
+        if course.get("default_view") == "wiki":
+            try:
+                fp = self.client.get_json(f"/courses/{self.target.course_id}/front_page")
+                front_page_body = fp.get("body") or ""
+                print(f"- {'Front Page':13}: Accessible ('{fp.get('title')}')")
+            except Exception as exc:
+                print(f"- {'Front Page':13}: Not accessible ({exc})")
 
-        print(f"files: {len(files)}")
-        print(f"pages: {len(pages)}")
-        print(f"assignments: {len(assignments)}")
-        print(f"modules: {len(modules)}")
-        print(f"module items: {module_items_count}")
-        print(f"discussions: {len(discussions)}")
-        print(f"announcements: {len(announcements)}")
-        print("Dry run complete. No file bodies were downloaded.")
+        # Discover links from Syllabus and Front Page
+        seeds = []
+        if (course.get("syllabus_body") or "").strip():
+            seeds.append(("Syllabus", course["syllabus_body"]))
+        if front_page_body.strip():
+            seeds.append(("Front Page", front_page_body))
+        if self.page_target:
+            try:
+                target_page = self.client.get_json(f"/courses/{self.target.course_id}/pages/{quote(self.page_target.page_slug, safe='')}")
+                if target_page.get("body"):
+                    seeds.append((f"Seed Page ({self.page_target.page_slug})", target_page["body"]))
+                    print(f"- {'Seed Page':13}: Accessible ('{target_page.get('title')}')")
+            except Exception as exc:
+                print(f"- {'Seed Page':13}: Not accessible ({exc})")
+
+        if seeds:
+            print("\nDiscovering links from crawl seeds (Syllabus, Front Page, provided Page):")
+            for label, body in seeds:
+                self.print_discovered_links(body, label)
+
+        print("\nDry run complete. No files were downloaded or modified.")
+
+    def fetch_collection_status(self, path: str, label: str) -> tuple[list[Any], str]:
+        try:
+            items = self.client.get_paginated(path, params={"per_page": 100})
+            if not items:
+                return [], "Accessible (0 items found)"
+            return items, f"Accessible ({len(items)} items found)"
+        except CanvasPermissionError as exc:
+            if exc.status_code == 403:
+                return [], "Permission denied (403 Forbidden)"
+            return [], f"Inaccessible ({exc})"
+        except CanvasAPIError as exc:
+            if exc.status_code == 404:
+                return [], "Not found / Not enabled (404 Not Found)"
+            return [], f"Inaccessible ({exc})"
+        except Exception as exc:
+            return [], f"Inaccessible ({exc})"
+
+    def print_discovered_links(self, html: str, source_label: str) -> None:
+        resources = extract_html_resources(html, self.target.domain, source_label)
+        groups: dict[str, list[ResourceRef]] = {
+            "Pages": [],
+            "Files": [],
+            "Assignments": [],
+            "Discussions": [],
+            "External/Protected": [],
+            "Other": []
+        }
+        for res in resources:
+            cls = normalize_canvas_url(res.absolute_url, self.target.domain, self.target.course_id)
+            if cls.kind == "canvas_page":
+                groups["Pages"].append(res)
+            elif cls.kind == "canvas_file":
+                groups["Files"].append(res)
+            elif cls.kind == "canvas_assignment":
+                groups["Assignments"].append(res)
+            elif cls.kind == "canvas_discussion":
+                groups["Discussions"].append(res)
+            elif cls.kind in ("external", "external_protected"):
+                groups["External/Protected"].append(res)
+            else:
+                groups["Other"].append(res)
+
+        print(f"  From {source_label}:")
+        for group_name, res_list in groups.items():
+            if res_list:
+                # Deduplicate by absolute URL for summary
+                unique_urls = {r.absolute_url for r in res_list}
+                print(f"    - {group_name:18}: {len(unique_urls)} unique links found")
+                if self.verbose:
+                    for url in sorted(unique_urls):
+                        print(f"        {url}")
 
     def prepare_course_dir(self, course: dict[str, Any]) -> None:
         self.course_dir = self.output_dir / self.course_folder_name(course)
@@ -1639,6 +1737,16 @@ class FullCourseArchiver:
             self.modules_index.append(module_record)
             self.log("module", self.client.api_url(f"/courses/{self.target.course_id}/modules/{module_id}"), module_dir / "module_index.html", "saved")
         write_json(self.course_dir / "modules" / "modules_index.json", self.modules_index)
+
+    def archive_front_page(self) -> Path | None:
+        try:
+            front_page = self.client.get_json(f"/courses/{self.target.course_id}/front_page")
+            slug = front_page.get("url")
+            if slug:
+                return self.save_page_by_slug(str(slug), depth=self.crawl_depth)
+        except Exception as exc:
+            self.warn(f"Could not fetch course front page: {exc}")
+        return None
 
     def handle_module_item(self, item: dict[str, Any], module_dir: Path) -> dict[str, Any]:
         item_type = item.get("type") or "Unknown"
@@ -2173,6 +2281,7 @@ def main(argv: list[str] | None = None) -> int:
             client=client,
             target=course_target,
             output_dir=Path(args.output_dir).expanduser().resolve(),
+            page_target=page_target,
             download_external=args.download_external,
             include_submissions=args.include_submissions,
             dry_run=args.dry_run,

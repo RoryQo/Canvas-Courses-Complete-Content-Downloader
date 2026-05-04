@@ -20,16 +20,18 @@ It works for all courses you have access to, including both current and past enr
 
 ---
 
-## Recommended: Archive One Canvas Course From The Command Line
+## Phase 1: Archive a single Canvas Page
 
-The new CLI uses the Canvas REST API under `/api/v1` and creates a local
-navigation page for the archived course. You can pass either a full Canvas
-course URL or a domain plus course id.
+The Phase 1 CLI archives one Canvas Page through the Canvas REST API under
+`/api/v1`. It saves the page as local HTML, downloads Canvas-hosted files linked
+from that page, rewrites those file links to local paths, and records
+external/protected links without trying to bypass logins, paywalls, library
+proxies, or streaming protections.
 
 ### 1. Install the Python packages
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ### 2. Set your Canvas API token
@@ -54,48 +56,100 @@ need it.
 
 ### 3. Run the archive
 
+Dry run first. This validates the token, fetches course/page metadata, extracts
+and classifies links, and does not download file bodies.
+
 ```bash
-python canvas_archive.py --course-url "https://canvas.harvard.edu/courses/146553"
+python canvas_archive.py --course-page-url "https://canvas.harvard.edu/courses/151500/pages/week-1" --single-page-only --dry-run
+```
+
+Archive the page:
+
+```bash
+python canvas_archive.py --course-page-url "https://canvas.harvard.edu/courses/151500/pages/week-1" --single-page-only
+```
+
+Optional output directory:
+
+```bash
+python canvas_archive.py --course-page-url "https://canvas.harvard.edu/courses/151500/pages/week-1" --single-page-only --output-dir canvas_all_content
+```
+
+Open the generated local page:
+
+```text
+canvas_all_content/<Course Name - 151500>/index.html
+```
+
+Canvas-hosted linked files should work offline after the archive completes.
+External/protected links are recorded in `external_links.json` and may still
+require internet access and a Canvas, library, or provider login.
+
+## Archive a full Canvas course
+
+Full-course mode uses Canvas API endpoints under `/api/v1` to archive the
+course content your token can access. It uses Canvas Modules as the main local
+navigation backbone and writes a course `index.html` for offline browsing.
+
+### 1. Install the Python packages
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### 2. Set your Canvas API token
+
+macOS/Linux:
+
+```bash
+export CANVAS_API_TOKEN="your_token_here"
+```
+
+Windows PowerShell:
+
+```powershell
+$env:CANVAS_API_TOKEN="your_token_here"
+```
+
+Treat the token like a password. Revoke it in Canvas when you no longer need it.
+
+### 3. Dry run
+
+```bash
+python canvas_archive.py --course-url "https://canvas.harvard.edu/courses/151500" --dry-run
+```
+
+### 4. Archive
+
+```bash
+python canvas_archive.py --course-url "https://canvas.harvard.edu/courses/151500"
 ```
 
 Equivalent form:
 
 ```bash
-python canvas_archive.py \
-  --domain "https://canvas.harvard.edu" \
-  --course-id 146553
+python canvas_archive.py --domain "https://canvas.harvard.edu" --course-id 151500
 ```
 
-Useful options:
+Open:
 
-```bash
-python canvas_archive.py \
-  --course-url "https://canvas.harvard.edu/courses/146553" \
-  --output-dir canvas_all_content \
-  --include-submissions \
-  --download-external false
+```text
+canvas_all_content/<Course Name - 151500>/index.html
 ```
 
-Run a safe metadata check without downloading course content:
-
-```bash
-python canvas_archive.py --course-url "https://canvas.harvard.edu/courses/146553" --dry-run
-```
-
-The archive is written under `canvas_all_content/`. Open the generated
-`index.html` dashboard, then open the course `index.html` for module-based
-navigation, pages, assignments, files, syllabus, warnings, and external links.
-
-External protected resources such as streaming video, library proxy pages,
-Google Drive, Panopto, Kaltura, and YouTube are recorded as links but are not
-scraped or bypassed.
+Canvas-hosted/API-accessible files, pages, assignments, discussions,
+announcements, syllabus content, and module indexes should be available offline
+where your account has permission to access them. External/protected resources
+are recorded as links and may require internet access or login. The archiver
+does not try to bypass authentication, DRM, paywalls, library proxy
+restrictions, LTI tools, or streaming protections.
 
 ---
 
 ## Setup Instructions
 
-The notebooks are still included for compatibility, but the command-line
-archive above is now the recommended path.
+The notebooks are still included for compatibility, but the Phase 1 command-line
+single-page archive above is the recommended path for new use.
 
 ### 1. Generate a Canvas API Token 
 
@@ -134,7 +188,7 @@ To use the command-line archiver, install the following Python packages:
 You can install them all at once with:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 The older notebooks may still require `pdfkit` and `wkhtmltopdf` if you want

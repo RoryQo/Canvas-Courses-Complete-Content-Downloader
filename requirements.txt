@@ -2,4 +2,4 @@ beautifulsoup4==4.14.3
 html2text==2025.4.15
 tqdm==4.67.3
 pdfkit==1.0.0
-requests==2.32.5
+requests>=2.33.0
